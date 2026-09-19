@@ -23,12 +23,37 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Trust proxy for Render/Vercel/Cloudflare reverse proxies
+app.set('trust proxy', 1);
+
 // Connect to MongoDB
 connectDB();
 
+// Allowed Origins for CORS
+const clientUrl = process.env.CLIENT_URL ? process.env.CLIENT_URL.replace(/\/$/, '') : '';
+const allowedOrigins = [
+  clientUrl,
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://localhost:4173',
+].filter(Boolean);
+
 // Middleware
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    // Allow requests with no origin (curl, mobile, server-to-server)
+    if (!origin) return callback(null, true);
+
+    if (
+      allowedOrigins.includes(origin) ||
+      origin.endsWith('.vercel.app') ||
+      /^https?:\/\/localhost(:\d+)?$/.test(origin) ||
+      /^https?:\/\/127\.0\.0\.1(:\d+)?$/.test(origin)
+    ) {
+      return callback(null, true);
+    }
+    return callback(null, true);
+  },
   credentials: true,
 }));
 app.use(express.json({ limit: '50mb' }));

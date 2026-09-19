@@ -27,6 +27,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setUser(data.user);
       }
     } catch {
+      localStorage.removeItem('token');
       setUser(null);
     } finally {
       setLoading(false);
@@ -36,6 +37,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const login = async (email: string, password: string) => {
     const { data } = await api.post('/auth/login', { email, password });
     if (data.success) {
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+      }
       setUser(data.user);
     }
   };
@@ -43,13 +47,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const register = async (name: string, email: string, password: string) => {
     const { data } = await api.post('/auth/register', { name, email, password });
     if (data.success) {
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+      }
       setUser(data.user);
     }
   };
 
   const logout = async () => {
-    await api.post('/auth/logout');
-    setUser(null);
+    try {
+      await api.post('/auth/logout');
+    } catch {
+      // ignore logout network errors
+    } finally {
+      localStorage.removeItem('token');
+      setUser(null);
+    }
   };
 
   return (
